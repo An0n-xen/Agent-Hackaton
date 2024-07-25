@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "agentic"
+version = "0.1.0"
+description = "Agentic using crewAI"
+authors = ["Your Name <fiifi@vela.partners>"]
+
+[tool.poetry.dependencies]
+python = ">=3.10,<=3.13"
+crewai = { extras = ["tools"], version = "^0.36.1" }
+
+[tool.poetry.scripts]
+agentic = "agentic.main:run"
+train = "agentic.main:train"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
