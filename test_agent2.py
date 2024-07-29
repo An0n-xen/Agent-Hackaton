@@ -1,49 +1,78 @@
 import json
-from langchain_openai import ChatOpenAI
-from crewai import Crew, Process, Agent, Task
-from tools.test_tool import getNewsDesc
-
+from openai import OpenAI
 from dotenv import load_dotenv, find_dotenv
+from utils.config import functions_description, news_trend_sentiment
+from utils.utilities import getNews
 
 load_dotenv(find_dotenv(), override=True)
 
-
-manager_llm = ChatOpenAI(model_name="gpt-4o-mini")
-agent_llm = ChatOpenAI(model_name="gpt-4o-mini", temperature=0)
+client = OpenAI()
 
 
-NewsSentimentAgent = Agent(
-    role="Find the sentiment of the news",
-    goal="Find the sentiment of the news",
-    backstory="News Sentiment analyist to find the sentiment of the news",
-    verbose=True,
-    allow_delegation=False,
-    LLM=agent_llm,
-)
+def getNewsDesc(query: str) -> str:
+    """Useful to get the news descriptions"""
+    return getNews(query)
 
-NewsSentimentTask = Task(
-    agent=NewsSentimentAgent,
-    description="Use the tool to get the news descriptions, before getting the news descriptions, wait for human input so you which news description you want to get, Then find the sentiment of the news descriptions, give a percentage score for each of these sections Positive, Negative, Tools building, Break throughs, Research and development",
-    expected_output="""
-            the output should be in this format
-            
-                Postive - (positive count / total count)
-                Negative - (negative count / total count)
-                Research development - (research development count / total count)
-                Tools building - (tools building count / total count)
-                Break throughs - (break throughs count / total count)
-        """,
-    human_input=True,
-    tools=[getNewsDesc],
-)
 
-agent_crew = Crew(
-    agents=[NewsSentimentAgent],
-    tasks=[NewsSentimentTask],
-    process=Process.sequential,
-    verbose=2,
-    manager_llm=manager_llm,
-)
+def RunAgentFunction(func_name: str, func_arguments: dict):
+    """
+    Runs the specified agent function with the given arguments.
 
-crew_results = agent_crew.kickoff()
-print(crew_results)
+    Args:
+        func_name (str): The name of the agent function to run.
+        func_arguments: The arguments to pass to the agent function.
+
+    Returns:
+        The result from the agent function.
+    """
+
+    # Getting required function
+    function = eval(func_name)
+
+    # Running function and storing results
+    result_from_function = function(func_arguments)
+    return result_from_function
+
+
+def run(messages: list) -> str:
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=messages,
+        temperature=0,
+    )
+
+    res = response.choices[0]
+
+    # if res.finish_reason == "function_call":
+    #     func_name = res.message.function_call.name
+    #     func_args = json.loads(res.message.function_call.arguments)
+
+    #     results = RunAgentFunction(func_name, func_args)
+
+    #     messages = [{"role": "function", "name": func_name, "content": results}]
+
+    #     print("fun")
+    #     agent_response = run(messages)
+
+    #     return agent_response
+
+    agent_response = res.message.content
+    return agent_response
+
+
+if __name__ == "__main__":
+    user_input = input("Enter a new topic: ")
+
+    news_descriptions = getNewsDesc(user_input)
+
+    messages = [
+        {
+            "role": "assistant",
+            "content": news_trend_sentiment,
+        },
+        {"role": "user", "content": news_descriptions},
+    ]
+
+    results = run(messages=messages)
+
+    print(results)
