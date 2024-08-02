@@ -8,8 +8,20 @@ from newsapi import NewsApiClient
 
 load_dotenv(find_dotenv(), override=True)
 
+api_key = os.getenv("NEWSAPI_KEY")  # Replace with your actual API key
+
 autocomplete_url = "https://api.crunchbase.com/api/v4/autocompletes"
 organization_url = "https://api.crunchbase.com/api/v4/searches/organizations"
+base_url = "https://newsapi.org/v2/top-headlines"
+
+# Define the query parameters, including the category
+params = {
+    "country": "us",  # Country code
+    "category": "technology",  # Category of news (e.g., business, entertainment, general, health, science, sports, technology)
+    "apiKey": api_key,
+    "pageSize": 50,
+}
+
 
 newsapi = NewsApiClient(api_key=os.getenv("NEWSAPI_KEY"))
 
@@ -130,3 +142,18 @@ def getNews(query: str) -> str:
         results += f"{idx}. {article['description']}\n"
 
     return results
+
+
+def latestNews():
+    # Make the GET request with the specified parameters
+    response = requests.get(base_url, params=params)
+
+    # Check if the request was successful (status code 200)
+    if response.status_code == 200:
+        # Parse the JSON response
+        data = response.json()
+        # Print the JSON data (or process it as needed)
+        return data
+    else:
+        print(f"Error: {response.status_code}")
+        print(response.text)
